@@ -1,5 +1,5 @@
 # Bubble Shooter HTML5
-Learn how to make a Bubble Shooter game like Bust-A-Move or Puzzle Bobble with HTML5 Canvas and JavaScript. We create a playable prototype of the casual game and explain all the algorithms and techniques.
+A Bubble Shooter game like Bust-A-Move or Puzzle Bobble with HTML5 Canvas and JavaScript.
 
 This is a code example that belongs to the article: [Bubble Shooter Game Tutorial With HTML5 And JavaScript](http://rembound.com/articles/bubble-shooter-game-tutorial-with-html5-and-javascript)
 
