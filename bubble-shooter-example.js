@@ -316,7 +316,7 @@ window.onload = function() {
             }
             
             // Add cluster score
-            score += cluster.length * 100;
+            score += cluster.length * 100+Math.pow(cluster.length,2)*10+Math.pow(cluster.length,3);
             
             // Find floating clusters
             floatingclusters = findFloatingClusters();
