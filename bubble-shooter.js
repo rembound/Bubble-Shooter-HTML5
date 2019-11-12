@@ -19,11 +19,123 @@
 // ------------------------------------------------------------------------
 
 // The function gets called when the window is fully loaded
-window.onload = function() {
-    // Get the canvas and context
-    var canvas = document.getElementById("viewport");
-    var context = canvas.getContext("2d");
+window.onload = () => {
+    document.getElementById("gofullscreen").onclick = function () {
+        let tilesize = Number(document.getElementById("tilesize").value);
+        let scale = tilesize / 40;
+        let rowheight = 34 * scale;
 
+        var canvas = document.createElement('canvas');
+
+        canvas.id = "GameBoard";
+
+        let body = document.getElementById("main");
+        let child;
+        while (child = body.firstChild) {
+            child.remove();
+        }
+
+        body.appendChild(canvas);
+
+        canvas.requestFullscreen().then(() => {
+            // Get the device pixel ratio, falling back to 1.
+            let dpr = window.devicePixelRatio || 1;
+
+            let rect = canvas.getBoundingClientRect();
+
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            // canvas.style.width = `${rect.width}px`;
+            // canvas.style.height = `${rect.height}px`;
+
+            let width = rect.width - 8 * scale;
+            // No idea where 66 comes from.
+            let height = rect.height - 2 * tilesize - 66 * scale;
+
+            // Level
+            let level = {
+                x: 4 * scale, // X position
+                y: 83 * scale, // Y position
+                width: width, // Width
+                height: height, // Height
+                columns: Math.floor((width - tilesize / 2) / tilesize), // Number of tile columns
+                rows: Math.floor((height - tilesize) / rowheight) + 1, // Number of tile rows
+                tilesize: tilesize, // Visual width of a tile
+                rowheight: rowheight, // Height of a row
+                radius: tilesize / 2, // Bubble collision radius
+                scale: scale, // This will be used all over to resize things
+                dpr: dpr, // Mouse position adjust
+                tiles: [] // The two-dimensional tile array
+            };
+
+            let context = canvas.getContext("2d");
+            context.scale(dpr, dpr);
+
+            run_game(canvas, context, level);
+        }, (err) => {
+            alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+        });
+    };
+
+    document.getElementById("staticstart").onclick = () => {
+        let tilesize = Number(document.getElementById("tilesize").value);
+        let scale = tilesize / 40;
+        let rowheight = 34 * scale;
+        let columns = Number(document.getElementById("columns").value);
+        let rows = Number(document.getElementById("rows").value);
+
+        // Get the device pixel ratio, falling back to 1.
+        var dpr = window.devicePixelRatio || 1;
+
+        // Level
+        let level = {
+            x: 4 * scale, // X position
+            y: 83 * scale, // Y position
+            width: columns * tilesize + tilesize / 2, // Width
+            height: rows * rowheight + tilesize, // Height
+            columns: columns, // Number of tile columns
+            rows: rows + 1, // Number of tile rows
+            tilesize: tilesize, // Visual size of a tile
+            rowheight: rowheight, // Height of a row
+            radius: tilesize / 2, // Bubble collision radius
+            scale: scale, // This will be used all over to resize things
+            dpr: dpr, // Mouse position adjust
+            tiles: [] // The two-dimensional tile array
+        };
+
+        let canvas = document.createElement('canvas');
+
+        let width = level.width + 8 * scale;
+        // No idea where 66 comes from.
+        let height = level.height + 2 * tilesize + 66 * scale;
+
+        canvas.id = "GameBoard";
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        canvas.style.zIndex = 8;
+        canvas.style.position = "absolute";
+        canvas.style.border = "1px solid";
+        canvas.style.marginLeft = `${(width + 2) / -2}px`;
+        canvas.style.marginTop = `${(height + 2) / -2}px`;
+
+        let center = document.getElementById("centerpoint");
+        let child;
+        while (child = center.firstChild) {
+            child.remove();
+        }
+
+        center.appendChild(canvas);
+
+        let context = canvas.getContext("2d");
+        context.scale(dpr, dpr);
+
+        run_game(canvas, context, level);
+    };
+}
+
+function run_game(canvas, context, level) {
     // Timing and frames per second
     var lastframe = 0;
     var fpstime = 0;
@@ -31,21 +143,6 @@ window.onload = function() {
     var fps = 0;
 
     var initialized = false;
-
-    // Level
-    var level = {
-        x: 4,           // X position
-        y: 83,          // Y position
-        width: 0,       // Width, gets calculated
-        height: 0,      // Height, gets calculated
-        columns: 15,    // Number of tile columns
-        rows: 14,       // Number of tile rows
-        tilewidth: 40,  // Visual width of a tile
-        tileheight: 40, // Visual height of a tile
-        rowheight: 34,  // Height of a row
-        radius: 20,     // Bubble collision radius
-        tiles: []       // The two-dimensional tile array
-    };
 
     // Define a tile class
     var Tile = function(x, y, type, shift) {
@@ -183,16 +280,13 @@ window.onload = function() {
             }
         }
 
-        level.width = level.columns * level.tilewidth + level.tilewidth/2;
-        level.height = (level.rows-1) * level.rowheight + level.tileheight;
-
         // Init the player
-        player.x = level.x + level.width/2 - level.tilewidth/2;
+        player.x = level.x + level.width/2 - level.tilesize/2;
         player.y = level.y + level.height;
         player.angle = 90;
         player.tiletype = 0;
 
-        player.nextbubble.x = player.x - 2 * level.tilewidth;
+        player.nextbubble.x = player.x - 2 * level.tilesize;
         player.nextbubble.y = player.y;
 
         // New game
@@ -219,16 +313,16 @@ window.onload = function() {
             // Draw a progress bar
             var loadpercentage = loadcount/loadtotal;
             context.strokeStyle = "#ff8080";
-            context.lineWidth=3;
-            context.strokeRect(18.5, 0.5 + canvas.height - 51, canvas.width-37, 32);
+            context.lineWidth = 3 * level.scale;
+            context.strokeRect(18.5 * level.scale, canvas.height - 50.5 * level.scale, canvas.width - 37 * level.scale, 32 * level.scale);
             context.fillStyle = "#ff8080";
-            context.fillRect(18.5, 0.5 + canvas.height - 51, loadpercentage*(canvas.width-37), 32);
+            context.fillRect(18.5 * level.scale, canvas.height - 50.5 * level.scale, loadpercentage * (canvas.width - 37 * level.scale), 32 * level.scale);
 
             // Draw the progress text
             var loadtext = "Loaded " + loadcount + "/" + loadtotal + " images";
             context.fillStyle = "#000000";
-            context.font = "16px Verdana";
-            context.fillText(loadtext, 18, 0.5 + canvas.height - 63);
+            context.font = `${16 * level.scale}px Verdana`;
+            context.fillText(loadtext, 18 * level.scale, canvas.height - 62.5 * level.scale);
 
             if (preloaded) {
                 // Add a delay for demonstration purposes
@@ -279,10 +373,10 @@ window.onload = function() {
             // Left edge
             player.bubble.angle = 180 - player.bubble.angle;
             player.bubble.x = level.x;
-        } else if (player.bubble.x + level.tilewidth >= level.x + level.width) {
+        } else if (player.bubble.x + level.tilesize >= level.x + level.width) {
             // Right edge
             player.bubble.angle = 180 - player.bubble.angle;
-            player.bubble.x = level.x + level.width - level.tilewidth;
+            player.bubble.x = level.x + level.width - level.tilesize;
         }
 
         // Collisions with the top of the level
@@ -305,11 +399,11 @@ window.onload = function() {
 
                 // Check for intersections
                 var coord = getTileCoordinate(i, j);
-                if (circleIntersection(player.bubble.x + level.tilewidth/2,
-                                       player.bubble.y + level.tileheight/2,
+                if (circleIntersection(player.bubble.x + level.tilesize/2,
+                                       player.bubble.y + level.tilesize/2,
                                        level.radius,
-                                       coord.tilex + level.tilewidth/2,
-                                       coord.tiley + level.tileheight/2,
+                                       coord.tilex + level.tilesize/2,
+                                       coord.tiley + level.tilesize/2,
                                        level.radius)) {
 
                     // Intersection with a level bubble
@@ -394,7 +488,7 @@ window.onload = function() {
                         }
 
                         // Check if the bubbles are past the bottom of the level
-                        if (tile.alpha == 0 || (tile.y * level.rowheight + tile.shift > (level.rows - 1) * level.rowheight + level.tileheight)) {
+                        if (tile.alpha == 0 || (tile.y * level.rowheight + tile.shift > (level.rows - 1) * level.rowheight + level.tilesize)) {
                             tile.type = -1;
                             tile.shift = 0;
                             tile.alpha = 1;
@@ -432,8 +526,8 @@ window.onload = function() {
     // Snap bubble to the grid
     function snapBubble() {
         // Get the grid position
-        var centerx = player.bubble.x + level.tilewidth/2;
-        var centery = player.bubble.y + level.tileheight/2;
+        var centerx = player.bubble.x + level.tilesize/2;
+        var centery = player.bubble.y + level.tilesize/2;
         var gridpos = getGridPosition(centerx, centery);
 
         // Make sure the grid position is valid
@@ -715,7 +809,7 @@ window.onload = function() {
     // Draw text that is centered
     function drawCenterText(text, x, y, width) {
         var textdim = context.measureText(text);
-        context.fillText(text, x + (width-textdim.width)/2, y);
+        context.fillText(text, x * level.scale + (width * level.scale - textdim.width)/2, y * level.scale);
     }
 
     // Render the game
@@ -723,27 +817,27 @@ window.onload = function() {
         // Draw the frame around the game
         drawFrame();
 
-        var yoffset =  level.tileheight/2;
+        var yoffset =  level.tilesize/2;
 
         // Draw level background
         context.fillStyle = "#8c8c8c";
-        context.fillRect(level.x - 4, level.y - 4, level.width + 8, level.height + 4 - yoffset);
+        context.fillRect(level.x - 4 * level.scale, level.y - 4 * level.scale, level.width + 8 * level.scale, level.height + 4 * level.scale - yoffset);
 
         // Render tiles
         renderTiles();
 
         // Draw level bottom
         context.fillStyle = "#656565";
-        context.fillRect(level.x - 4, level.y - 4 + level.height + 4 - yoffset, level.width + 8, 2*level.tileheight + 3);
+        context.fillRect(level.x - 4 * level.scale, level.y - 4 * level.scale + level.height + 4 * level.scale - yoffset, level.width + 8 * level.scale, 2*level.tilesize + 3 * level.scale);
 
         // Draw score
         context.fillStyle = "#ffffff";
-        context.font = "18px Verdana";
+        context.font = `${18 * level.scale}px Verdana`;
         var scorex = level.x + level.width - 150;
-        var scorey = level.y+level.height + level.tileheight - yoffset - 8;
+        var scorey = level.y+level.height + level.tilesize - yoffset - 8;
         drawCenterText("Score:", scorex, scorey, 150);
-        context.font = "24px Verdana";
-        drawCenterText(score, scorex, scorey+30, 150);
+        context.font = `${24 * level.scale}px Verdana`;
+        drawCenterText(score, scorex, scorey + 30, 150);
 
         // Render cluster
         if (showcluster) {
@@ -762,10 +856,10 @@ window.onload = function() {
         // Game Over overlay
         if (gamestate == gamestates.gameover) {
             context.fillStyle = "rgba(0, 0, 0, 0.8)";
-            context.fillRect(level.x - 4, level.y - 4, level.width + 8, level.height + 2 * level.tileheight + 8 - yoffset);
+            context.fillRect(level.x - 4 * level.scale, level.y - 4 * level.scale, level.width + 8 * level.scale, level.height + 2 * level.tilesize + 8 * level.scale - yoffset);
 
             context.fillStyle = "#ffffff";
-            context.font = "24px Verdana";
+            context.font = `${24 * level.scale}px Verdana`;
             drawCenterText("Game Over!", level.x, level.y + level.height / 2 + 10, level.width);
             drawCenterText("Click to start", level.x, level.y + level.height / 2 + 40, level.width);
         }
@@ -779,17 +873,17 @@ window.onload = function() {
 
         // Draw header
         context.fillStyle = "#303030";
-        context.fillRect(0, 0, canvas.width, 79);
+        context.fillRect(0, 0, canvas.width, 79 * level.scale);
 
         // Draw title
         context.fillStyle = "#ffffff";
-        context.font = "24px Verdana";
-        context.fillText("Bubble Shooter Example - Rembound.com", 10, 37);
+        context.font = `${24 * level.scale}px Verdana`;
+        context.fillText("Bubble Shooter Example - Rembound.com", 10 * level.scale, 37 * level.scale);
 
         // Display fps
         context.fillStyle = "#ffffff";
-        context.font = "12px Verdana";
-        context.fillText("Fps: " + fps, 13, 57);
+        context.font = `${12 * level.scale}px Verdana`;
+        context.fillText("Fps: " + fps, 13 * level.scale, 57 * level.scale);
     }
 
     // Render tiles
@@ -829,30 +923,30 @@ window.onload = function() {
 
             // Draw the tile using the color
             context.fillStyle = "rgb(" + r + "," + g + "," + b + ")";
-            context.fillRect(coord.tilex+level.tilewidth/4, coord.tiley+level.tileheight/4, level.tilewidth/2, level.tileheight/2);
+            context.fillRect(coord.tilex+level.tilesize/4, coord.tiley+level.tilesize/4, level.tilesize/2, level.tilesize/2);
         }
     }
 
     // Render the player bubble
     function renderPlayer() {
-        var centerx = player.x + level.tilewidth/2;
-        var centery = player.y + level.tileheight/2;
+        var centerx = player.x + level.tilesize/2;
+        var centery = player.y + level.tilesize/2;
 
         // Draw player background circle
         context.fillStyle = "#7a7a7a";
         context.beginPath();
-        context.arc(centerx, centery, level.radius+12, 0, 2*Math.PI, false);
+        context.arc(centerx, centery, level.radius+12 * level.scale, 0, 2*Math.PI, false);
         context.fill();
-        context.lineWidth = 2;
+        context.lineWidth = 2 * level.scale;
         context.strokeStyle = "#8c8c8c";
         context.stroke();
 
         // Draw the angle
-        context.lineWidth = 2;
+        context.lineWidth = 2 * level.scale;
         context.strokeStyle = "#0000ff";
         context.beginPath();
         context.moveTo(centerx, centery);
-        context.lineTo(centerx + 1.5*level.tilewidth * Math.cos(degToRad(player.angle)), centery - 1.5*level.tileheight * Math.sin(degToRad(player.angle)));
+        context.lineTo(centerx + 1.5*level.tilesize * Math.cos(degToRad(player.angle)), centery - 1.5*level.tilesize * Math.sin(degToRad(player.angle)));
         context.stroke();
 
         // Draw the next bubble
@@ -867,11 +961,11 @@ window.onload = function() {
 
     // Get the tile coordinate
     function getTileCoordinate(column, row) {
-        var tilex = level.x + column * level.tilewidth;
+        var tilex = level.x + column * level.tilesize;
 
         // X offset for odd or even rows
         if ((row + rowoffset) % 2) {
-            tilex += level.tilewidth/2;
+            tilex += level.tilesize/2;
         }
 
         var tiley = level.y + row * level.rowheight;
@@ -885,9 +979,9 @@ window.onload = function() {
         // Check for offset
         var xoffset = 0;
         if ((gridy + rowoffset) % 2) {
-            xoffset = level.tilewidth / 2;
+            xoffset = level.tilesize / 2;
         }
-        var gridx = Math.floor(((x - xoffset) - level.x) / level.tilewidth);
+        var gridx = Math.floor(((x - xoffset) - level.x) / level.tilesize);
 
         return { x: gridx, y: gridy };
     }
@@ -899,7 +993,7 @@ window.onload = function() {
             return;
 
         // Draw the bubble sprite
-        context.drawImage(bubbleimage, index * 40, 0, 40, 40, x, y, level.tilewidth, level.tileheight);
+        context.drawImage(bubbleimage, index * 40, 0, 40, 40, x, y, level.tilesize, level.tilesize);
     }
 
     // Start a new game
@@ -1026,7 +1120,7 @@ window.onload = function() {
         var pos = getMousePos(canvas, e);
 
         // Get the mouse angle
-        var mouseangle = radToDeg(Math.atan2((player.y+level.tileheight/2) - pos.y, pos.x - (player.x+level.tilewidth/2)));
+        var mouseangle = radToDeg(Math.atan2((player.y+level.tilesize/2) - pos.y, pos.x - (player.x+level.tilesize/2)));
 
         // Convert range to 0, 360 degrees
         if (mouseangle < 0) {
@@ -1153,8 +1247,8 @@ window.onload = function() {
     function getMousePos(canvas, e) {
         var rect = canvas.getBoundingClientRect();
         return {
-            x: Math.round((e.clientX - rect.left)/(rect.right - rect.left)*canvas.width),
-            y: Math.round((e.clientY - rect.top)/(rect.bottom - rect.top)*canvas.height)
+            x: Math.round((e.clientX - rect.left)/(rect.right - rect.left)*canvas.width/level.dpr),
+            y: Math.round((e.clientY - rect.top)/(rect.bottom - rect.top)*canvas.height/level.dpr)
         };
     }
 
