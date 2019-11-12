@@ -107,6 +107,15 @@ window.onload = function() {
     var cluster = [];
     var floatingclusters = [];
 
+    // Touch
+    var touch = {
+        identifyer: undefined,
+        timeStamp: undefined
+    };
+
+    // Leaderboard
+    var scoringflags = {};
+
     // Images
     var images = [];
     var bubbleimage;
@@ -158,6 +167,12 @@ window.onload = function() {
         // Add mouse events
         canvas.addEventListener("mousemove", onMouseMove);
         canvas.addEventListener("mousedown", onMouseDown);
+
+        // Add touch events
+        canvas.addEventListener("touchstart", touchHandleStart);
+        canvas.addEventListener("touchmove", touchHandleMove);
+        canvas.addEventListener("touchend", touchHandleEnd);
+        canvas.addEventListener("touchcancel", touchHandleCancel);
 
         // Initialize the two-dimensional tile array
         for (var i=0; i<level.columns; i++) {
@@ -1046,6 +1061,91 @@ window.onload = function() {
             shootBubble();
         } else if (gamestate == gamestates.gameover) {
             newGame();
+        }
+    }
+
+    // On Touch Start
+    function touchHandleStart(e) {
+        e.preventDefault();
+        var targetTouch = e.targetTouches[0];
+        onMouseMove(targetTouch);
+        if (0) {
+            touch = {
+                identifyer: targetTouch.identifyer,
+                timeStamp: e.timeStamp
+            };
+            var d = {
+                timeStamp: touch.timeStamp,
+                touchPos: getMousePos(canvas, targetTouch)
+            };
+            var node = document.createElement("LI");
+            var textnode =
+                document.createTextNode(`touchHandleStart(${JSON.stringify(d)})`);
+            node.appendChild(textnode);
+            document.getElementById("main").appendChild(node)
+        }
+    }
+
+    // On Touch Move
+    function touchHandleMove(e) {
+        e.preventDefault();
+        var targetTouch = e.targetTouches[0];
+        onMouseMove(targetTouch);
+        if (0) {
+            var d = {
+                timeDelta: e.timeStamp - touch.timeStamp,
+                touchPos: getMousePos(canvas, targetTouch)
+            };
+            var node = document.createElement("LI");
+            var textnode =
+                document.createTextNode(`touchHandleMove(${JSON.stringify(d)})`);
+            node.appendChild(textnode);
+            document.getElementById("main").appendChild(node)
+        }
+    }
+
+    // On Touch End
+    function touchHandleEnd(e) {
+        e.preventDefault();
+        if (gamestate == gamestates.ready) {
+            shootBubble();
+        } else if (gamestate == gamestates.gameover) {
+            newGame();
+        }
+        if (0) {
+            var targetTouch = e.targetTouches[0];
+            var d = {
+                timeDelta: e.timeStamp - touch.timeStamp
+            };
+            touch = {
+                identifyer: undefined,
+                timeStamp: undefined
+            };
+            var node = document.createElement("LI");
+            var textnode =
+                document.createTextNode(`touchHandleEnd(${JSON.stringify(d)})`);
+            node.appendChild(textnode);
+            document.getElementById("main").appendChild(node)
+        }
+    }
+
+    // On Touch Cancel
+    function touchHandleCancel(e) {
+        e.preventDefault();
+        if (0) {
+            var targetTouch = e.targetTouches[0];
+            var d = {
+                timeDelta: e.timeStamp - touch.timeStamp
+            };
+            touch = {
+                identifyer: undefined,
+                timeStamp: undefined
+            };
+            var node = document.createElement("LI");
+            var textnode =
+                document.createTextNode(`touchHandleCancel(${JSON.stringify(d)})`);
+            node.appendChild(textnode);
+            document.getElementById("main").appendChild(node);
         }
     }
 
