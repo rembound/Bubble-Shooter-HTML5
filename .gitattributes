@@ -1,0 +1,6 @@
+* text=auto
+/LICENSE text
+*.js text
+*.html text
+*.md text
+*.png binary
