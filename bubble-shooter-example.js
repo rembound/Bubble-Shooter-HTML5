@@ -22,7 +22,28 @@
 window.onload = function() {
     // Get the canvas and context
     var canvas = document.getElementById("viewport");
-    var context = canvas.getContext("2d");
+    // Get the device pixel ratio, falling back to 1.
+    var dpr = window.devicePixelRatio || 1;
+    var rect = { width: window.innerWidth, height: window.innerHeight };
+    var context = function(){
+        // Get orientation.
+        var orientation = screen.msOrientation || screen.mozOrientation || (screen.orientation || {}).type;
+        // Get the size of the canvas in CSS pixels.
+        // Give the canvas pixel dimensions of their CSS
+        // size * the device pixel ratio.
+        if (orientation === "portrait" || orientation === "portrait-primary" || orientation === "portrait-secondary") {
+            canvas.style.width = `${rect.height}px`;
+            canvas.style.height = `${rect.width}px`;
+        } else {
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+        };
+        var context = canvas.getContext("2d");
+        // Scale all drawing operations by the dpr, so you
+        // don't have to worry about the difference.
+        context.scale(dpr, dpr);
+        return context;
+    }();
 
     // Timing and frames per second
     var lastframe = 0;
@@ -38,14 +59,17 @@ window.onload = function() {
         y: 83,          // Y position
         width: 0,       // Width, gets calculated
         height: 0,      // Height, gets calculated
-        columns: 15,    // Number of tile columns
-        rows: 14,       // Number of tile rows
+        columns: 0,     // Number of tile columns
+        rows: 0,        // Number of tile rows
         tilewidth: 40,  // Visual width of a tile
         tileheight: 40, // Visual height of a tile
         rowheight: 34,  // Height of a row
         radius: 20,     // Bubble collision radius
         tiles: []       // The two-dimensional tile array
     };
+
+    level.columns = Math.floor(rect.width / (dpr * level.tilewidth));
+    level.rows = Math.floor(rect.height / (dpr * level.tileheight));
 
     // Define a tile class
     var Tile = function(x, y, type, shift) {
