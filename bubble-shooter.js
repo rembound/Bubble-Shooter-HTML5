@@ -283,7 +283,7 @@ function run_game(canvas, context, level) {
         // Init the player
         player.x = level.x + level.width/2 - level.tilesize/2;
         player.y = level.y + level.height;
-        player.angle = 90;
+        player.angle = Math.PI;
         player.tiletype = 0;
 
         player.nextbubble.x = player.x - 2 * level.tilesize;
@@ -365,18 +365,20 @@ function run_game(canvas, context, level) {
         // Bubble is moving
 
         // Move the bubble in the direction of the mouse
-        player.bubble.x += dt * player.bubble.speed * Math.cos(degToRad(player.bubble.angle));
-        player.bubble.y += dt * player.bubble.speed * -1*Math.sin(degToRad(player.bubble.angle));
+        player.bubble.x += dt * player.bubble.speed * Math.cos(player.bubble.angle);
+        player.bubble.y -= dt * player.bubble.speed * Math.sin(player.bubble.angle);
+
+        let rightEdge = level.x + level.width - level.tilesize;
 
         // Handle left and right collisions with the level
         if (player.bubble.x <= level.x) {
             // Left edge
-            player.bubble.angle = 180 - player.bubble.angle;
-            player.bubble.x = level.x;
-        } else if (player.bubble.x + level.tilesize >= level.x + level.width) {
+            player.bubble.angle = Math.PI - player.bubble.angle;
+            player.bubble.x = level.x * 2 - player.bubble.x;
+        } else if (player.bubble.x >= rightEdge) {
             // Right edge
-            player.bubble.angle = 180 - player.bubble.angle;
-            player.bubble.x = level.x + level.width - level.tilesize;
+            player.bubble.angle = Math.PI - player.bubble.angle;
+            player.bubble.x = rightEdge * 2 - player.bubble.x;
         }
 
         // Collisions with the top of the level
@@ -399,12 +401,19 @@ function run_game(canvas, context, level) {
 
                 // Check for intersections
                 var coord = getTileCoordinate(i, j);
-                if (circleIntersection(player.bubble.x + level.tilesize/2,
-                                       player.bubble.y + level.tilesize/2,
-                                       level.radius,
-                                       coord.tilex + level.tilesize/2,
-                                       coord.tiley + level.tilesize/2,
-                                       level.radius)) {
+                if ( // Check if two circles intersect
+                    function circleIntersection(x1, y1, r1, x2, y2, r2) {
+                        // Calculate the distance between the centers
+                        var dx = x1 - x2;
+                        var dy = y1 - y2;
+
+                        return dx * dx + dy * dy < r1 * r1 + r2 * r2;
+                    }(player.bubble.x + level.tilesize / 2,
+                        player.bubble.y + level.tilesize / 2,
+                        level.radius,
+                        coord.tilex + level.tilesize / 2,
+                        coord.tiley + level.tilesize / 2,
+                        level.radius)) {
 
                     // Intersection with a level bubble
                     snapBubble();
@@ -946,7 +955,7 @@ function run_game(canvas, context, level) {
         context.strokeStyle = "#0000ff";
         context.beginPath();
         context.moveTo(centerx, centery);
-        context.lineTo(centerx + 1.5*level.tilesize * Math.cos(degToRad(player.angle)), centery - 1.5*level.tilesize * Math.sin(degToRad(player.angle)));
+        context.lineTo(centerx + 1.5*level.tilesize * Math.cos(player.angle), centery - 1.5*level.tilesize * Math.sin(player.angle));
         context.stroke();
 
         // Draw the next bubble
@@ -1089,61 +1098,20 @@ function run_game(canvas, context, level) {
         setGameState(gamestates.shootbubble);
     }
 
-    // Check if two circles intersect
-    function circleIntersection(x1, y1, r1, x2, y2, r2) {
-        // Calculate the distance between the centers
-        var dx = x1 - x2;
-        var dy = y1 - y2;
-        var len = Math.sqrt(dx * dx + dy * dy);
-
-        if (len < r1 + r2) {
-            // Circles intersect
-            return true;
-        }
-
-        return false;
-    }
-
-    // Convert radians to degrees
-    function radToDeg(angle) {
-        return angle * (180 / Math.PI);
-    }
-
-    // Convert degrees to radians
-    function degToRad(angle) {
-        return angle * (Math.PI / 180);
-    }
-
     // On mouse movement
     function onMouseMove(e) {
         // Get the mouse position
         var pos = getMousePos(canvas, e);
 
         // Get the mouse angle
-        var mouseangle = radToDeg(Math.atan2((player.y+level.tilesize/2) - pos.y, pos.x - (player.x+level.tilesize/2)));
-
-        // Convert range to 0, 360 degrees
-        if (mouseangle < 0) {
-            mouseangle = 180 + (180 + mouseangle);
-        }
+        var mouseangle = Math.atan2((player.y + level.tilesize / 2) - pos.y, pos.x - (player.x + level.tilesize / 2));
 
         // Restrict angle to 8, 172 degrees
-        var lbound = 8;
-        var ubound = 172;
-        if (mouseangle > 90 && mouseangle < 270) {
-            // Left
-            if (mouseangle > ubound) {
-                mouseangle = ubound;
-            }
-        } else {
-            // Right
-            if (mouseangle < lbound || mouseangle >= 270) {
-                mouseangle = lbound;
-            }
-        }
+        var lbound = 0.13962634015954636; // 8
+        var ubound = 3.001966313430247; // 172
 
         // Set the player angle
-        player.angle = mouseangle;
+        player.angle = [lbound, mouseangle - Math.PI * Math.floor(mouseangle / Math.PI), ubound].sort()[1];
     }
 
     // On mouse button click
