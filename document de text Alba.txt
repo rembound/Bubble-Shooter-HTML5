@@ -1,6 +1,2 @@
 document de text Alba
-<<<<<<< HEAD
 aquesta es la nova línia de text
-=======
-aquesta es la nova línia de text
->>>>>>> master
