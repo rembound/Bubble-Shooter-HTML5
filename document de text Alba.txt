@@ -1,1 +1,2 @@
 document de text Alba
+aquesta es la nova línia de text
